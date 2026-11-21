@@ -1,0 +1,7 @@
+exclude:
+  - README.md
+  - build.py
+  - data
+  - public
+  - tests
+  - __pycache__

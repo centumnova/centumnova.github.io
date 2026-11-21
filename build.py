@@ -1,4 +1,5 @@
 """Build the bilingual CENTUMNOVA website with Python's standard library."""
+import argparse
 import html
 import json
 import re
@@ -186,7 +187,7 @@ def layout(lang, page, title, body):
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{esc(full_title)}</title>
   <meta name="description" content="{esc(c["description"] if page == "home" else f"{title} | {BRAND}")}">
-  {search}
+{search}
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="{esc(BRAND)}">
   <meta property="og:title" content="{esc(full_title)}">
@@ -296,7 +297,7 @@ def document(lang, page):
     <article class="shell document"><h1>{esc(c[page])}</h1>{"".join(sections)}{links}</article>''')
 
 
-def build():
+def build(publish=False):
     apps = json.loads((ROOT / "data/apps.json").read_text(encoding="utf-8"))
     if not isinstance(apps, list):
         raise ValueError("data/apps.json must contain an array.")
@@ -326,8 +327,17 @@ def build():
         destination.write_text(content, encoding="utf-8")
     ET.ElementTree(sitemap).write(output / "sitemap.xml", encoding="utf-8", xml_declaration=True)
     (output / ".nojekyll").touch()
+    if publish:
+        for source in output.rglob("*"):
+            if source.is_file() and source.name != ".nojekyll":
+                destination = ROOT / source.relative_to(output)
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                if not destination.exists() or destination.read_bytes() != source.read_bytes():
+                    shutil.copyfile(source, destination)
     print(f"Built {len(files)} pages in {output}")
 
 
 if __name__ == "__main__":
-    build()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--publish", action="store_true", help="Update the main-branch Pages files.")
+    build(publish=parser.parse_args().publish)
